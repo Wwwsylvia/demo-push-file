@@ -31,7 +31,7 @@ func pushFiles() {
 		panic(err)
 	}
 
-	// 2. copy from the file store to a remote repository
+	// 2. connect to a remote repository
 	reg := "myregistry.example.com"
 	repo, err := remote.NewRepository(reg + "/myrepo")
 	if err != nil {
@@ -44,6 +44,8 @@ func pushFiles() {
 			Password: "password",
 		}),
 	}
+
+	// 3. copy from the file store to the remote repository
 	_, err = oras.Copy(ctx, fs, tag, repo, tag, oras.DefaultCopyOptions)
 	if err != nil {
 		panic(err)
@@ -55,7 +57,7 @@ func pullFiles() {
 	fs := file.New("")
 	defer fs.Close()
 
-	// 2. copy from a remote repository to the file store
+	// 2. connect to a remote repository
 	ctx := context.Background()
 	reg := "myregistry.example.com"
 	repo, err := remote.NewRepository(reg + "/myrepo")
@@ -70,6 +72,7 @@ func pullFiles() {
 		}),
 	}
 
+	// 3. copy from the remote repository to the file store
 	tag := "latest"
 	_, err = oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions)
 	if err != nil {
