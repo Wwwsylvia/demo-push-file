@@ -16,7 +16,7 @@ func main() {
 }
 
 func pushFiles() {
-	// 0. create a file store
+	// 0. Create a file store
 	fs, err := file.New("/tmp/")
 	if err != nil {
 		panic(err)
@@ -24,7 +24,7 @@ func pushFiles() {
 	defer fs.Close()
 	ctx := context.Background()
 
-	// 1. add files to a file store
+	// 1. Add files to a file store
 	mediaType := "example/file"
 	fileNames := []string{"/tmp/myfile"}
 	fileDescriptors := make([]v1.Descriptor, 0, len(fileNames))
@@ -36,7 +36,10 @@ func pushFiles() {
 		fileDescriptors = append(fileDescriptors, fileDescriptor)
 	}
 
-	// 2. pack the files and tag the packed manifest
+	// 2. Pack the files and tag the packed manifest
+	// Note:
+	// This will pack an artifact manifest by default.
+	// If it does not work, try oras.PackOptions{PackImageManifest: true}.
 	artifactType := "example/files"
 	manifestDescriptor, err := oras.Pack(ctx, fs, artifactType, fileDescriptors, oras.PackOptions{})
 	if err != nil {
@@ -47,7 +50,7 @@ func pushFiles() {
 		panic(err)
 	}
 
-	// 3. connect to a remote repository
+	// 3. Connect to a remote repository
 	reg := "myregistry.example.com"
 	repo, err := remote.NewRepository(reg + "/myrepo")
 	if err != nil {
@@ -61,7 +64,7 @@ func pushFiles() {
 		}),
 	}
 
-	// 3. copy from the file store to the remote repository
+	// 3. Copy from the file store to the remote repository
 	_, err = oras.Copy(ctx, fs, tag, repo, tag, oras.DefaultCopyOptions)
 	if err != nil {
 		panic(err)
@@ -69,14 +72,14 @@ func pushFiles() {
 }
 
 func pullFiles() {
-	// 0. create a file store
+	// 0. Create a file store
 	fs, err := file.New("/tmp/")
 	if err != nil {
 		panic(err)
 	}
 	defer fs.Close()
 
-	// 1. connect to a remote repository
+	// 1. Connect to a remote repository
 	ctx := context.Background()
 	reg := "myregistry.example.com"
 	repo, err := remote.NewRepository(reg + "/myrepo")
@@ -91,7 +94,7 @@ func pullFiles() {
 		}),
 	}
 
-	// 2. copy from the remote repository to the file store
+	// 2. Copy from the remote repository to the file store
 	tag := "latest"
 	_, err = oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions)
 	if err != nil {
