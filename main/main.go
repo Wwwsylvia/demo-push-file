@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
@@ -11,27 +12,42 @@ import (
 
 func main() {
 	pushFiles()
-	// pullFiles()
+	pullFiles()
 }
 
 func pushFiles() {
-	files := []string{"/tmp/myfile"}
-	tag := "latest"
-	fs := file.New("/tmp/")
+	// 0. create a file store
+	fs, err := file.New("/tmp/")
+	if err != nil {
+		panic(err)
+	}
 	defer fs.Close()
+	ctx := context.Background()
 
 	// 1. add files to a file store
-	ctx := context.Background()
-	desc, err := fs.PackFiles(ctx, files)
+	mediaType := "example/file"
+	fileNames := []string{"/tmp/myfile"}
+	fileDescriptors := make([]v1.Descriptor, 0, len(fileNames))
+	for _, f := range fileNames {
+		fileDescriptor, err := fs.Add(ctx, f, mediaType, "")
+		if err != nil {
+			panic(err)
+		}
+		fileDescriptors = append(fileDescriptors, fileDescriptor)
+	}
+
+	// 2. pack the files and tag the packed manifest
+	artifactType := "example/files"
+	manifestDescriptor, err := oras.Pack(ctx, fs, artifactType, fileDescriptors, oras.PackOptions{})
 	if err != nil {
 		panic(err)
 	}
-	err = fs.Tag(ctx, desc, tag)
-	if err != nil {
+	tag := "latest"
+	if err = fs.Tag(ctx, manifestDescriptor, tag); err != nil {
 		panic(err)
 	}
 
-	// 2. connect to a remote repository
+	// 3. connect to a remote repository
 	reg := "myregistry.example.com"
 	repo, err := remote.NewRepository(reg + "/myrepo")
 	if err != nil {
@@ -53,11 +69,14 @@ func pushFiles() {
 }
 
 func pullFiles() {
-	// 1. create a file store
-	fs := file.New("")
+	// 0. create a file store
+	fs, err := file.New("/tmp/")
+	if err != nil {
+		panic(err)
+	}
 	defer fs.Close()
 
-	// 2. connect to a remote repository
+	// 1. connect to a remote repository
 	ctx := context.Background()
 	reg := "myregistry.example.com"
 	repo, err := remote.NewRepository(reg + "/myrepo")
@@ -72,7 +91,7 @@ func pullFiles() {
 		}),
 	}
 
-	// 3. copy from the remote repository to the file store
+	// 2. copy from the remote repository to the file store
 	tag := "latest"
 	_, err = oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions)
 	if err != nil {
