@@ -101,8 +101,9 @@ func pullFiles() {
 
 	// 2. Copy from the remote repository to the file store
 	tag := "latest"
-	_, err = oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions)
+	manifestDescriptor, err := oras.Copy(ctx, repo, tag, fs, tag, oras.DefaultCopyOptions)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("manifest descriptor:", manifestDescriptor)
 }
