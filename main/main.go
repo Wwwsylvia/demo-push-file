@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
@@ -28,23 +29,27 @@ func pushFiles() {
 	mediaType := "example/file"
 	fileNames := []string{"/tmp/myfile"}
 	fileDescriptors := make([]v1.Descriptor, 0, len(fileNames))
-	for _, f := range fileNames {
-		fileDescriptor, err := fs.Add(ctx, f, mediaType, "")
+	for _, name := range fileNames {
+		fileDescriptor, err := fs.Add(ctx, name, mediaType, "")
 		if err != nil {
 			panic(err)
 		}
 		fileDescriptors = append(fileDescriptors, fileDescriptor)
+		fmt.Printf("file descriptor for %s: %v\n", name, fileDescriptor)
 	}
 
 	// 2. Pack the files and tag the packed manifest
 	// Note:
-	// This will pack an artifact manifest by default.
-	// If it does not work, try oras.PackOptions{PackImageManifest: true}.
+	// oras.Pack() packs an artifact manifest by default.
+	// If the remote repository does not support the artifact manifest media type,
+	// try Image manifest by specifying oras.PackOptions{PackImageManifest: true} instead.
 	artifactType := "example/files"
 	manifestDescriptor, err := oras.Pack(ctx, fs, artifactType, fileDescriptors, oras.PackOptions{})
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("manifest descriptor:", manifestDescriptor)
+
 	tag := "latest"
 	if err = fs.Tag(ctx, manifestDescriptor, tag); err != nil {
 		panic(err)
