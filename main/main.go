@@ -9,6 +9,7 @@ import (
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
+	"oras.land/oras-go/v2/registry/remote/retry"
 )
 
 func main() {
@@ -42,7 +43,7 @@ func pushFiles() {
 	// Note:
 	// oras.Pack() packs an artifact manifest by default.
 	// If the remote repository does not support the artifact manifest media type,
-	// try Image manifest by specifying oras.PackOptions{PackImageManifest: true} instead.
+	// try Image manifest instead by specifying oras.PackOptions{PackImageManifest: true}.
 	artifactType := "example/files"
 	manifestDescriptor, err := oras.Pack(ctx, fs, artifactType, fileDescriptors, oras.PackOptions{})
 	if err != nil {
@@ -61,8 +62,10 @@ func pushFiles() {
 	if err != nil {
 		panic(err)
 	}
+	// Note: The below code can be omitted if authentication is not required
 	repo.Client = &auth.Client{
-		Cache: auth.DefaultCache,
+		Client: retry.DefaultClient,
+		Cache:  auth.DefaultCache,
 		Credential: auth.StaticCredential(reg, auth.Credential{
 			Username: "username",
 			Password: "password",
